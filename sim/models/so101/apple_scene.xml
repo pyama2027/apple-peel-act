@@ -1,0 +1,58 @@
+<!--
+  Apple-on-needle task scene for SO101 (MuJoCo).
+  Frame: robot base at origin, +x = robot forward, -y = robot's right, table top at z=0.
+  Collision bits: robot/table/needle stand = 1; apple contype=2 conaffinity=1;
+  needle shaft contype=4 conaffinity=1 -> collides with robot, NOT with the apple (it can slide into it).
+  "Skewered" is simulated by activating the apple_on_needle weld at runtime.
+-->
+<mujoco model="so101_apple_needle">
+  <include file="so101_new_calib_camera.xml"/>
+
+  <!-- noslip_iterations: without it the apple creeps 3-5 mm/s out of the grasp (sim/test_grasp.py, scripts/grasp_sweep.sh) -->
+  <!-- timestep 1/600 s: 20 physics steps per 30 fps control frame -->
+  <option timestep="0.0016666666666666668" cone="elliptic" impratio="10" noslip_iterations="5"/>
+
+  <visual>
+    <headlight diffuse="0.5 0.5 0.5" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <global offwidth="640" offheight="480" azimuth="160" elevation="-25"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.6 0.7 0.8" rgb2="0.2 0.2 0.25" width="512" height="3072"/>
+    <texture name="wood" type="2d" builtin="flat" rgb1="0.62 0.47 0.32" width="64" height="64"/>
+    <material name="table" texture="wood" rgba="1 1 1 1"/>
+    <material name="floor" rgba="0.3 0.3 0.32 1"/>
+    <material name="apple" rgba="0.75 0.08 0.08 1" specular="0.4" shininess="0.6"/>
+    <material name="steel" rgba="0.8 0.8 0.85 1" specular="0.9" shininess="0.9"/>
+    <material name="stand" rgba="0.15 0.15 0.15 1"/>
+  </asset>
+
+  <worldbody>
+    <light name="key" pos="0.3 -0.3 1.2" dir="-0.2 0.2 -1" directional="true" diffuse="0.7 0.7 0.7"/>
+    <geom name="floor" type="plane" size="0 0 0.05" pos="0 0 -0.75" material="floor"/>
+    <geom name="table" type="box" size="0.35 0.45 0.02" pos="0.15 0 -0.02" material="table" friction="1 0.005 0.0001"/>
+
+    <!-- static aim point for the overhead camera -->
+    <body name="workspace_center" pos="0.2 0 0"/>
+    <camera name="overhead" mode="targetbody" target="workspace_center" pos="0.55 0 0.55" fovy="60"/>
+
+    <body name="apple" pos="0.20 -0.15 0.04">
+      <freejoint name="apple_free"/>
+      <geom name="apple" type="sphere" size="0.04" mass="0.2" material="apple"
+            contype="2" conaffinity="1" condim="4" friction="1.5 0.02 0.001" solref="0.004 1"/>
+      <geom name="apple_stem" type="capsule" fromto="0 0 0.038 0.003 0 0.052" size="0.002"
+            rgba="0.35 0.22 0.1 1" contype="0" conaffinity="0" mass="0"/>
+    </body>
+
+    <body name="needle" pos="0.20 0.15 0">
+      <geom name="needle_stand" type="cylinder" size="0.03 0.01" pos="0 0 0.01" material="stand"/>
+      <geom name="needle_shaft" type="cylinder" size="0.0025 0.04" pos="0 0 0.06" material="steel"
+            contype="4" conaffinity="1"/>
+      <site name="needle_tip" pos="0 0 0.1" size="0.003" rgba="1 0 0 1"/>
+    </body>
+  </worldbody>
+
+  <equality>
+    <weld name="apple_on_needle" body1="needle" body2="apple" active="false" solref="0.005 1"/>
+  </equality>
+</mujoco>
